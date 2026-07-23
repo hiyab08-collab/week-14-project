@@ -10,7 +10,6 @@
     "db:down": "docker compose -f ../../docker-compose.yml down",
     "db:logs": "docker compose -f ../../docker-compose.yml logs -f postgres",
     "db:psql": "psql postgresql://postgres:postgres@localhost:5433/backend-db",
-    "db:connect": "docker exec -it backend_postgres psql -U postgres -d backend-db",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -19,6 +18,9 @@
     "db:reset": "prisma migrate reset --force && prisma db seed",
     "sql:schema": "psql \"$DATABASE_URL\" -f database/schema.sql",
     "sql:seed": "psql \"$DATABASE_URL\" -f database/seed.sql"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

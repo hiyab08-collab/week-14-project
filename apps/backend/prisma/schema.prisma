@@ -6,23 +6,27 @@ datasource db {
   provider = "postgresql"
 }
 
-model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at")
-  items     Item[]
+model DietType {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(50)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  restaurants Restaurant[]
 
-  @@map("categories")
+  @@map("diet_types")
 }
 
-model Item {
-  id          Int      @id @default(autoincrement())
-  name        String   @db.VarChar(100)
-  description String   @db.Text
-  categoryId  Int      @map("category_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+model Restaurant {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(150)
+  description  String?  @db.Text
+  address      String   @db.VarChar(255)
+  phone        String?  @db.VarChar(20)
+  cuisineType  String?  @map("cuisine_type") @db.VarChar(100)
+  priceRange   String   @default("$$") @map("price_range") @db.VarChar(4)
+  dietTypeId   Int      @map("diet_type_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  dietType     DietType @relation(fields: [dietTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([categoryId])
-  @@map("items")
+  @@index([dietTypeId])
+  @@map("restaurants")
 }
