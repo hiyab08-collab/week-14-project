@@ -1,125 +1,97 @@
-import { useEffect, useState } from "react";
-import { createItem, fetchCategories, fetchItems } from "./api/items.js";
-import ItemList from "./components/ItemList.jsx";
-
-const emptyForm = {
-  name: "",
-  description: "",
-  categoryId: ""
-};
+import { useCallback, useEffect, useState } from "react";
+import Navbar from "./components/Navbar";
+import FilterBar from "./components/FilterBar";
+import RestaurantList from "./components/RestaurantList";
+import RestaurantForm from "./components/RestaurantForm";
+import RestaurantDetail from "./components/RestaurantDetail";
 
 export default function App() {
-  const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [status, setStatus] = useState("Loading items...");
+  const [view, setView] = useState("browse");
+  const [filters, setFilters] = useState({ search: "", diet: "" });
+  const [editingRestaurant, setEditingRestaurant] = useState(null);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
+  const [refreshSignal, setRefreshSignal] = useState(0);
+  const [theme, setTheme] = useState(() => localStorage.getItem("kindtable-theme") || "light");
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [itemData, categoryData] = await Promise.all([
-          fetchItems(),
-          fetchCategories()
-        ]);
+    document.documentElement.setAttribute("data-bs-theme", theme);
+    localStorage.setItem("kindtable-theme", theme);
+  }, [theme]);
 
-        setItems(itemData);
-        setCategories(categoryData);
-        setStatus("");
-      } catch (error) {
-        setStatus(error.message);
-      }
-    }
-
-    loadData();
-  }, []);
-
-  function handleChange(event) {
-    const { name, value } = event.target;
-    setForm((currentForm) => ({
-      ...currentForm,
-      [name]: value
-    }));
+  function handleToggleTheme() {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setStatus("Saving item...");
+  const handleFilterChange = useCallback((next) => {
+    setFilters(next);
+  }, []);
 
-    try {
-      const savedItem = await createItem(form);
-      setItems((currentItems) => [...currentItems, savedItem]);
-      setForm(emptyForm);
-      setStatus("Item created successfully.");
-    } catch (error) {
-      setStatus(error.message);
+  function handleView(id) {
+    setSelectedRestaurantId(id);
+    setView("detail");
+  }
+
+  function handleEdit(restaurant) {
+    setEditingRestaurant(restaurant);
+    setView("add");
+  }
+
+  function handleSaved() {
+    setEditingRestaurant(null);
+    setRefreshSignal((n) => n + 1);
+    setView("browse");
+  }
+
+  function handleCancelEdit() {
+    setEditingRestaurant(null);
+    setView("browse");
+  }
+
+  function handleBackToBrowse() {
+    setSelectedRestaurantId(null);
+    setView("browse");
+  }
+
+  function handleNavigate(nextView) {
+    if (nextView === "add") {
+      setEditingRestaurant(null);
     }
+    setView(nextView);
   }
 
   return (
-    <main className="page">
-      <section className="panel">
-        <p className="eyebrow">React + Express + PostgreSQL + Prisma</p>
-        <h1>Student Full Stack Template</h1>
-        <p>
-          This starter includes a small example with categories and items so
-          students can see how the frontend, backend, and database connect.
-        </p>
-      </section>
+    <div className="min-vh-100 bg-body text-body">
+      <Navbar view={view} onNavigate={handleNavigate} theme={theme} onToggleTheme={handleToggleTheme} />
 
-      <section className="grid">
-        <article className="panel">
-          <h2>Create an item</h2>
-          <form className="form" onSubmit={handleSubmit}>
-            <label>
-              Item name
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Build a new feature"
-                required
-              />
-            </label>
+      <main className="container pb-5">
+        {view === "browse" && (
+          <>
+            <FilterBar onFilterChange={handleFilterChange} />
+            <RestaurantList
+              filters={filters}
+              refreshSignal={refreshSignal}
+              onView={handleView}
+              onEdit={handleEdit}
+            />
+          </>
+        )}
 
-            <label>
-              Description
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder="Describe the task"
-                rows="4"
-                required
-              />
-            </label>
+        {view === "detail" && (
+          <RestaurantDetail
+            restaurantId={selectedRestaurantId}
+            onBack={handleBackToBrowse}
+            onEdit={handleEdit}
+          />
+        )}
 
-            <label>
-              Category
-              <select
-                name="categoryId"
-                value={form.categoryId}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button type="submit">Create item</button>
-          </form>
-        </article>
-
-        <article className="panel">
-          <h2>Example items</h2>
-          {status ? <p className="status">{status}</p> : null}
-          <ItemList items={items} />
-        </article>
-      </section>
-    </main>
+        {view === "add" && (
+          <RestaurantForm
+            editingRestaurant={editingRestaurant}
+            onSaved={handleSaved}
+            onCancel={handleCancelEdit}
+          />
+        )}
+      </main>
+    </div>
   );
 }
